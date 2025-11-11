@@ -1,0 +1,10 @@
+{{- if .Values.configmap.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "KubeKit.fullname" . }}-cm
+data:
+	{{- with .Values.configmap.configs }}
+        {{- toYaml . | nindent 2 }}
+    {{- end }}
+{{- end }}
