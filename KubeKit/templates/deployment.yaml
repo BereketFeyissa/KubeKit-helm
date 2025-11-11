@@ -36,33 +36,46 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if .Values.configmap.enabled }}
           envFrom:
+          {{- if .Values.configmap.enabled }}
             - configMapRef:
                 name: {{ include "KubeKit.fullname" . }}-cm
           {{- end }}
+          {{- if .Values.secretRefs.enabled }}
+            {{- range .Values.secretRefs.secrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+          {{- end }}
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
+            {{- range .Values.services.service }}
+            - name: {{ .name | default "http" }}
+              containerPort: {{ .port }}
+              protocol: {{ .protocol | default "TCP" }}
+            {{- end }}
+
+          {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.endpoint }}
-              port: http
+              port: {{ .Values.livenessProbe.port | default "http" }}
             initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
             successThreshold: {{ .Values.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
           readinessProbe:
             httpGet:
               path: {{ .Values.readinessProbe.endpoint }}
-              port: http
+              port: {{ .Values.readinessProbe.port | default "http" }}
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
             successThreshold: {{ .Values.readinessProbe.successThreshold }}
             failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}

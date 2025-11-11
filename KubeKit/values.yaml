@@ -40,9 +40,28 @@ securityContext:
   #   drop:
   #   - ALL
 
-service:
+services:
   type: ClusterIP
-  port: 80
+  service:
+  - name: http
+    port: 80
+    protocol: TCP
+  #   serviceName: ""
+  # - name: https
+  #   port: 443
+  #   protocol: TCP
+  #   serviceName: great
+
+configmap:
+  enabled: false
+  configs: []
+    # key: value
+
+secretRefs:
+  enabled: false
+  secrets: []
+    # - secret
+    # - another-secret
 
 ingress:
   enabled: false
@@ -75,12 +94,14 @@ resources: {}
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 100
+  maxReplicas: 10
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
 livenessProbe:
+  enabled: false
   endpoint: /
+  port: http
   initialDelaySeconds: 10
   periodSeconds: 10
   timeoutSeconds: 1
@@ -88,17 +109,14 @@ livenessProbe:
   failureThreshold: 2
 
 readinessProbe:
+  enabled: false
   endpoint: /
+  port: http
   initialDelaySeconds: 10
   periodSeconds: 10
   timeoutSeconds: 1
   successThreshold: 2
   failureThreshold: 2
-
-configmap:
-  enabled: true
-  configs: 
-    key: value
 
 # Additional volumes on the output Deployment definition.
 volumes: []

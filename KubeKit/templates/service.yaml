@@ -1,15 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "KubeKit.fullname" . }}-svc
+  name: {{ include "KubeKit.fullname" . }}-service
   labels:
     {{- include "KubeKit.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.services.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: {{ include "KubeKit.fullname" . }}
+    {{- range .Values.services.service }}
+    - port: {{ .port | default 80 }}
+      targetPort: {{ .name | default "http" }}
+      protocol: {{ .protocol | default "TCP" }}
+      name: {{ default (include "KubeKit.fullname" $) .name}}      
+    {{- end }}
+
   selector:
     {{- include "KubeKit.selectorLabels" . | nindent 4 }}

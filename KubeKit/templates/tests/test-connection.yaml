@@ -11,5 +11,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "KubeKit.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ include "KubeKit.fullname" . }}:{{ (index .Values.services.service 0).port | default 80 }}']
   restartPolicy: Never
