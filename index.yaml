@@ -3,6 +3,36 @@ entries:
   KubeKit:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2025-12-12T20:11:48.027966015Z"
+    description: 'KubeKit is a generic, application-agnostic Helm chart for deploying
+      custom or in-house applications to a Kubernetes cluster. It is not tied to a
+      single upstream application; instead the chart provides reusable templates,
+      configuration patterns, and sensible defaults you can adapt to your own workloads.  Primary
+      components provided by this chart:   - Deployment: runs your application pods
+      with configurable image, replica     count, resource requests/limits, and rollout
+      strategy.   - Service: exposes the application inside the cluster; service type
+      and     ports are configurable via `values.yaml`.   - Ingress (optional): exposes
+      HTTP(S) routes externally when enabled.   - ConfigMap: stores configuration
+      or templates consumed by pods.   - ServiceAccount: gives pods an identity; chart
+      is ready for RBAC usage.   - HorizontalPodAutoscaler (HPA): optional autoscaling
+      based on CPU/memory.   - Tests: includes a basic connectivity test under `templates/tests`.  Customization
+      and usage notes:   - Edit `values.yaml` to configure image, tag, pull policy,
+      probes,     resources, replica counts, service type, ingress hosts, HPA settings,     and
+      rollout strategy.   - Override values at install/upgrade with `helm install
+      --set` or a values     file for environment-specific changes.   - Ingress/TLS
+      and HPA are optional; enable them when needed and provide     the required fields
+      in `values.yaml`.  Versioning:   - Bump the `version` field in this Chart.yaml
+      for chart/template changes.   - Update `appVersion` when the packaged application
+      (if any) is upgraded.  See `values.yaml` and the `templates/` directory for
+      full configuration options and examples of how to adapt the chart to your application.'
+    digest: 9d94777a831e33722e59d0649cc5081f2e8449914641ba0dd32bb735d9e5b656
+    name: KubeKit
+    type: application
+    urls:
+    - https://github.com/BereketFeyissa/KubeKit-helm/releases/download/KubeKit-1.2.0/KubeKit-1.2.0.tgz
+    version: 1.2.0
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2025-11-11T22:04:40.265954154Z"
     description: 'KubeKit is a generic, application-agnostic Helm chart for deploying
       custom or in-house applications to a Kubernetes cluster. It is not tied to a
@@ -41,4 +71,4 @@ entries:
     urls:
     - https://github.com/BereketFeyissa/KubeKit-helm/releases/download/KubeKit-1.0.0/KubeKit-1.0.0.tgz
     version: 1.0.0
-generated: "2025-11-11T22:04:40.265967054Z"
+generated: "2025-12-12T20:11:48.027986914Z"
