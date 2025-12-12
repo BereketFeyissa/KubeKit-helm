@@ -9,7 +9,7 @@ description: |-
 
   Primary components provided by this chart:
     - Deployment: runs your application pods with configurable image, replica
-      count, and resource requests/limits.
+      count, resource requests/limits, and rollout strategy.
     - Service: exposes the application inside the cluster; service type and
       ports are configurable via `values.yaml`.
     - Ingress (optional): exposes HTTP(S) routes externally when enabled.
@@ -20,7 +20,8 @@ description: |-
 
   Customization and usage notes:
     - Edit `values.yaml` to configure image, tag, pull policy, probes,
-      resources, replica counts, service type, ingress hosts, and HPA settings.
+      resources, replica counts, service type, ingress hosts, HPA settings,
+      and rollout strategy.
     - Override values at install/upgrade with `helm install --set` or a values
       file for environment-specific changes.
     - Ingress/TLS and HPA are optional; enable them when needed and provide
@@ -46,7 +47,7 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 1.1.0
+version: 1.2.0
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to

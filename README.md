@@ -45,6 +45,7 @@ The chart is configured via `KubeKit/values.yaml`. Important values (excerpt):
 - `ingress.enabled`, `ingress.hosts`, `ingress.tls` — ingress configuration.
 - `configmap.enabled` and `configmap.configs` — provide config maps for your pods.
 - `autoscaling.*` — options to enable HorizontalPodAutoscaler.
+- `strategy.*` — rollout strategy for the Deployment (default: RollingUpdate with 25% maxUnavailable/maxSurge).
 - `livenessProbe`, `readinessProbe` — probes configuration.
 
 You can override single values at install time:
