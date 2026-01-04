@@ -11,6 +11,8 @@ image:
   tag: ""
 
 imagePullSecrets: []
+command: []
+  # Optional command to override the default container entrypoint
 nameOverride: ""
 fullnameOverride: ""
 

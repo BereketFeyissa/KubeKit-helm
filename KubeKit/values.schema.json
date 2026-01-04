@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional command to override the default container entrypoint. Must be an array of strings. Example: ['echo', 'hello']"
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "description": "List of image pull secrets. Must be an array of objects, each with a required 'name' string property. Example: [{name: 'my-secret'}]"
+    }
+  },
+  "additionalProperties": true
+}
