@@ -86,13 +86,20 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
+          {{- if .Values.persistence.enabled }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
+          {{- range .Values.persistence.volumes }}
+            - name: {{ include "KubeKit.fullname" $ }}-{{ .name }}-storage
+              mountPath: {{ .mountPath }}
           {{- end }}
-      {{- with .Values.volumes }}
+          {{- end }}
+      {{- if .Values.persistence.enabled }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+      {{- range .Values.persistence.volumes }}
+        - name: {{ include "KubeKit.fullname" $ }}-{{ .name }}-storage
+          persistentVolumeClaim:
+            claimName: {{ include "KubeKit.fullname" $ }}-{{ .name }}-pvc
+      {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
