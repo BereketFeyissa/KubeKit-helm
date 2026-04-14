@@ -1,24 +1,40 @@
-{{- if .Values.persistence.enabled }}
-{{- range .Values.persistence.volumes }}
+{{- $root := . -}}
+{{- $deployments := .Values.deployments -}}
+{{- if not $deployments -}}
+  {{- $deployments = list (dict "name" "" "isDefault" true) -}}
+{{- end -}}
+
+{{- range $idx, $dep := $deployments }}
+  {{- $pvcEnabled := or $root.Values.persistence.enabled (and $dep.persistence $dep.persistence.enabled) -}}
+  {{- if $pvcEnabled }}
+    {{- $vols := $root.Values.persistence.volumes -}}
+    {{- if and $dep.persistence $dep.persistence.merge }}
+      {{- $vols = concat $root.Values.persistence.volumes $dep.persistence.volumes -}}
+    {{- else if and $dep.persistence $dep.persistence.volumes }}
+      {{- $vols = $dep.persistence.volumes -}}
+    {{- end }}
+
+    {{- range $vIndex, $vol := $vols }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "KubeKit.fullname" $ }}-{{ .name }}-pvc
+  name: {{ include "KubeKit.fullname" $root }}-{{ $dep.name | default "global" }}-{{ $vol.name }}-pvc
   labels:
-    {{- include "KubeKit.labels" $ | nindent 4 }}
-  {{- with .annotations }}
+    {{- include "KubeKit.labels" $root | nindent 4 }}
+  {{- with $vol.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   accessModes:
-    - {{ .accessMode | quote }}
+    - {{ $vol.accessMode | quote }}
   resources:
     requests:
-      storage: {{ .size | quote }}
-  {{- if .storageClass }}
-  storageClassName: {{ .storageClass | quote }}
+      storage: {{ $vol.size | quote }}
+  {{- if $vol.storageClass }}
+  storageClassName: {{ $vol.storageClass | quote }}
   {{- end }}
-{{- end }}
+    {{- end }}
+  {{- end }}
 {{- end }}

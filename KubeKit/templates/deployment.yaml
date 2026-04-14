@@ -1,115 +1,186 @@
+{{- $root := . -}}
+{{- $deployments := .Values.deployments -}}
+{{- if not $deployments -}}
+  {{- $deployments = list (dict "name" "" "isDefault" true) -}}
+{{- end -}}
+
+{{- range $idx, $dep := $deployments }}
+{{- if $idx }}
+---
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "KubeKit.fullname" . }}
+  name: {{ include "KubeKit.fullname" $root }}{{ if $dep.name }}-{{ $dep.name }}{{ end }}
   labels:
-    {{- include "KubeKit.labels" . | nindent 4 }}
-spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
-  {{- with .Values.strategy }}
-  strategy:
+    {{- include "KubeKit.labels" $root | nindent 4 }}
+    {{- with $dep.labels }}
     {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if not $root.Values.autoscaling.enabled }}
+  replicas: {{ default $root.Values.replicaCount $dep.replicaCount }}
   {{- end }}
+  strategy:
+    {{- toYaml $root.Values.strategy | nindent 4 }}
   selector:
     matchLabels:
-      {{- include "KubeKit.selectorLabels" . | nindent 6 }}
+      {{- include "KubeKit.selectorLabels" $root | nindent 6 }} {{/* 3. Use $root instead of . */}}
+      app.kubernetes.io/component: {{ $dep.name }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- if or $root.Values.podAnnotations $dep.podAnnotations }}
       annotations:
-        {{- toYaml . | nindent 8 }}
+        {{- with $root.Values.podAnnotations }}{{ toYaml . | nindent 8 }}{{ end }}
+        {{- with $dep.podAnnotations }}{{ toYaml . | nindent 8 }}{{ end }}
       {{- end }}
       labels:
-        {{- include "KubeKit.labels" . | nindent 8 }}
-	{{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        {{- include "KubeKit.labels" $root | nindent 8 }}
+        {{- include "KubeKit.selectorLabels" $root | nindent 8 }} {{/* FIXED: Changed . to $root */}}
+        {{- with $root.Values.podLabels }}{{ toYaml . | nindent 8 }}{{ end }}
+        {{- with $dep.podLabels }}{{ toYaml . | nindent 8 }}{{ end }}
+        app.kubernetes.io/component: {{ $dep.name | default "global" }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with $root.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "KubeKit.serviceAccountName" . }}
+      serviceAccountName: {{ default (include "KubeKit.serviceAccountName" $root) $dep.serviceAccountName }}
+      
+      {{- if $root.Values.podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml $root.Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      
       containers:
-        - name: {{ include "KubeKit.fullname" . }}
+        - name: {{ $dep.name | default $root.Chart.Name }}
+          {{- if $root.Values.securityContext }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.command }}
+            {{- toYaml $root.Values.securityContext | nindent 12 }}
+          {{- end }}
+          
+          {{- $repo := $root.Values.image.repository -}}
+          {{- if and $dep.image $dep.image.repository }}{{ $repo = $dep.image.repository }}{{ end -}}
+          {{- $tag := default $root.Chart.AppVersion $root.Values.image.tag -}}
+          {{- if and $dep.image $dep.image.tag }}{{ $tag = $dep.image.tag }}{{ end }}
+          image: "{{ $repo }}:{{ $tag }}"
+          imagePullPolicy: {{ if and $dep.image $dep.image.pullPolicy }}{{ $dep.image.pullPolicy }}{{ else }}{{ $root.Values.image.pullPolicy }}{{ end }}
+          
+          {{- $cmd := default $root.Values.command $dep.command }}
+          {{- if $cmd }}
           command:
-            {{- toYaml . | nindent 12 }}
+            {{- toYaml $cmd | nindent 12 }}
           {{- end }}
+
+          {{- $envList := $root.Values.env -}}
+          {{- if and $dep.env $dep.env.merge }}
+            {{- $envList = concat $root.Values.env $dep.env -}}
+          {{- else if $dep.env }}
+            {{- $envList = $dep.env -}}
+          {{- end }}
+          {{- if $envList }}
+          env:
+            {{- toYaml $envList | nindent 12 }}
+          {{- end }}
+
+          {{- $hasCM := or $root.Values.configmap.enabled (and $dep.configmap $dep.configmap.enabled) -}}
+          {{- $hasSecrets := or $root.Values.secretRefs.enabled (and $dep.secretRefs $dep.secretRefs.enabled) -}}
+          {{- if or $hasCM $hasSecrets }}
           envFrom:
-          {{- if .Values.configmap.enabled }}
+            {{- if $hasCM }}
             - configMapRef:
-                name: {{ include "KubeKit.fullname" . }}-cm
-          {{- end }}
-          {{- if .Values.secretRefs.enabled }}
-            {{- range .Values.secretRefs.secrets }}
+                name: {{ include "KubeKit.fullname" $root }}{{ if $dep.name }}-{{ $dep.name }}{{ end }}-cm
+            {{- end }}
+            {{- $secrets := list -}}
+            {{- if and $dep.secretRefs $dep.secretRefs.merge }}
+              {{- $secrets = concat $root.Values.secretRefs.secrets (default list $dep.secretRefs.secrets) -}}
+            {{- else if and $dep.secretRefs $dep.secretRefs.enabled }}
+              {{- $secrets = $dep.secretRefs.secrets -}}
+            {{- else }}
+              {{- $secrets = $root.Values.secretRefs.secrets -}}
+            {{- end }}
+            {{- range $secrets }}
             - secretRef:
                 name: {{ . }}
             {{- end }}
           {{- end }}
+
           ports:
-            {{- range .Values.services.service }}
+            {{- $ports := $root.Values.services.service -}}
+            {{- if and $dep.services $dep.services.merge }}
+              {{- $ports = concat $root.Values.services.service $dep.services.service -}}
+            {{- else if and $dep.services $dep.services.service }}
+              {{- $ports = $dep.services.service -}}
+            {{- end }}
+            {{- range $ports }}
             - name: {{ .name | default "http" }}
               containerPort: {{ .port }}
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
 
-          {{- if .Values.livenessProbe.enabled }}
-          livenessProbe:
+          {{- range $p := list "livenessProbe" "readinessProbe" }}
+          {{- $globalP := index $root.Values $p -}}
+          {{- $depP := index $dep $p -}}
+          {{- if or $globalP.enabled (and $depP $depP.enabled) }}
+          {{ $p }}:
             httpGet:
-              path: {{ .Values.livenessProbe.endpoint }}
-              port: {{ .Values.livenessProbe.port | default "http" }}
-            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
-            successThreshold: {{ .Values.livenessProbe.successThreshold }}
-            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+              path: {{ if and $depP $depP.endpoint }}{{ $depP.endpoint }}{{ else }}{{ $globalP.endpoint }}{{ end }}
+              port: {{ if and $depP $depP.port }}{{ $depP.port }}{{ else }}{{ $globalP.port }}{{ end }}
+            initialDelaySeconds: {{ if and $depP $depP.initialDelaySeconds }}{{ $depP.initialDelaySeconds }}{{ else }}{{ $globalP.initialDelaySeconds }}{{ end }}
+            periodSeconds: {{ if and $depP $depP.periodSeconds }}{{ $depP.periodSeconds }}{{ else }}{{ $globalP.periodSeconds }}{{ end }}
           {{- end }}
-          {{- if .Values.readinessProbe.enabled }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.readinessProbe.endpoint }}
-              port: {{ .Values.readinessProbe.port | default "http" }}
-            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
-            successThreshold: {{ .Values.readinessProbe.successThreshold }}
-            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
           {{- end }}
+
+          {{- $res := default $root.Values.resources $dep.resources }}
+          {{- if $res }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-          {{- if .Values.persistence.enabled }}
+            {{- toYaml $res | nindent 12 }}
+          {{- end }}
+
+          {{- if or $root.Values.persistence.enabled (and $dep.persistence $dep.persistence.enabled) }}
           volumeMounts:
-          {{- range .Values.persistence.volumes }}
-            - name: {{ include "KubeKit.fullname" $ }}-{{ .name }}-storage
+            {{- $vols := $root.Values.persistence.volumes -}}
+            {{- if and $dep.persistence $dep.persistence.merge }}
+              {{- $vols = concat $root.Values.persistence.volumes $dep.persistence.volumes -}}
+            {{- else if and $dep.persistence $dep.persistence.volumes }}
+              {{- $vols = $dep.persistence.volumes -}}
+            {{- end }}
+            {{- range $vols }}
+            - name: {{ include "KubeKit.fullname" $root }}-{{ $dep.name | default "global" }}-{{ .name }}
               mountPath: {{ .mountPath }}
+            {{- end }}
           {{- end }}
-          {{- end }}
-      {{- if .Values.persistence.enabled }}
+
+      {{- if or $root.Values.persistence.enabled (and $dep.persistence $dep.persistence.enabled) }}
       volumes:
-      {{- range .Values.persistence.volumes }}
-        - name: {{ include "KubeKit.fullname" $ }}-{{ .name }}-storage
+        {{- $vols := $root.Values.persistence.volumes -}}
+        {{- if and $dep.persistence $dep.persistence.merge }}
+          {{- $vols = concat $root.Values.persistence.volumes $dep.persistence.volumes -}}
+        {{- else if and $dep.persistence $dep.persistence.volumes }}
+          {{- $vols = $dep.persistence.volumes -}}
+        {{- end }}
+        {{- range $vols }}
+        - name: {{ include "KubeKit.fullname" $root }}-{{ $dep.name | default "global" }}-{{ .name }}
           persistentVolumeClaim:
-            claimName: {{ include "KubeKit.fullname" $ }}-{{ .name }}-pvc
+            claimName: {{ include "KubeKit.fullname" $root }}-{{ $dep.name | default "global" }}-{{ .name }}-pvc
+        {{- end }}
       {{- end }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
+
+      {{- $ns := default $root.Values.nodeSelector $dep.nodeSelector }}
+      {{- if $ns }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml $ns | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      
+      {{- $aff := default $root.Values.affinity $dep.affinity }}
+      {{- if $aff }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml $aff | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      
+      {{- $tol := default $root.Values.tolerations $dep.tolerations }}
+      {{- if $tol }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml $tol | nindent 8 }}
       {{- end }}
+{{- end }}

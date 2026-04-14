@@ -1,10 +1,41 @@
+{{- /* Render global ConfigMap */ -}}
 {{- if .Values.configmap.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "KubeKit.fullname" . }}-cm
 data:
-	{{- with .Values.configmap.configs }}
-        {{- toYaml . | nindent 2 }}
+  {{- if .Values.configmap.configs }}
+  {{- toYaml .Values.configmap.configs | nindent 2 }}
+  {{- else }}
+  {}
+  {{- end }}
+{{- end }}
+
+{{- /* Render per-deployment ConfigMaps */ -}}
+{{- if .Values.deployments }}
+{{- $root := . -}}
+{{- range $idx, $dep := $root.Values.deployments }}
+{{- if and $dep.configmap $dep.configmap.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "KubeKit.fullname" $root }}-{{ $dep.name }}-cm
+data:
+  {{- $hasGlobal := and $root.Values.configmap.configs (gt (len $root.Values.configmap.configs) 0) -}}
+  {{- $hasLocal := and $dep.configmap.configs (gt (len $dep.configmap.configs) 0) -}}
+  
+  {{- if or $hasGlobal $hasLocal }}
+    {{- if and $dep.configmap.merge $hasGlobal }}
+{{ toYaml $root.Values.configmap.configs | indent 2 }}
     {{- end }}
+    {{- if $hasLocal }}
+{{ toYaml $dep.configmap.configs | indent 2 }}
+    {{- end }}
+  {{- else }}
+  {}
+  {{- end }}
+{{- end }}
+{{- end }}
 {{- end }}

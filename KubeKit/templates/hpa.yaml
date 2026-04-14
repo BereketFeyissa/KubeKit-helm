@@ -1,32 +1,53 @@
-{{- if .Values.autoscaling.enabled }}
+{{- $root := . -}}
+{{- $deployments := .Values.deployments -}}
+{{- if not $deployments -}}
+  {{- $deployments = list (dict "name" "" "isDefault" true) -}}
+{{- end -}}
+
+{{- range $idx, $dep := $deployments }}
+  {{- $hpaEnabled := false -}}
+  {{- $hpaVals := dict -}}
+  {{- if and $dep.autoscaling (hasKey $dep.autoscaling "enabled") }}
+    {{- $hpaEnabled = $dep.autoscaling.enabled -}}
+    {{- $hpaVals = $dep.autoscaling -}}
+  {{- else if $root.Values.autoscaling.enabled }}
+    {{- $hpaEnabled = true -}}
+    {{- $hpaVals = $root.Values.autoscaling -}}
+  {{- end }}
+
+  {{- if $hpaEnabled }}
+{{- if $idx }}---{{ end }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "KubeKit.fullname" . }}
+  name: {{ include "KubeKit.fullname" $root }}{{ if $dep.name }}-{{ $dep.name }}{{ end }}
   labels:
-    {{- include "KubeKit.labels" . | nindent 4 }}
+    {{- include "KubeKit.labels" $root | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "KubeKit.fullname" . }}
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+    name: {{ include "KubeKit.fullname" $root }}{{ if $dep.name }}-{{ $dep.name }}{{ end }}
+  minReplicas: {{ default $root.Values.autoscaling.minReplicas $hpaVals.minReplicas }}
+  maxReplicas: {{ default $root.Values.autoscaling.maxReplicas $hpaVals.maxReplicas }}
   metrics:
-    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- $cpu := default $root.Values.autoscaling.targetCPUUtilizationPercentage $hpaVals.targetCPUUtilizationPercentage }}
+    {{- if $cpu }}
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ $cpu }}
     {{- end }}
-    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- $mem := default $root.Values.autoscaling.targetMemoryUtilizationPercentage $hpaVals.targetMemoryUtilizationPercentage }}
+    {{- if $mem }}
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+          averageUtilization: {{ $mem }}
     {{- end }}
+  {{- end }}
 {{- end }}

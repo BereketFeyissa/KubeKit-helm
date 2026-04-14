@@ -56,14 +56,38 @@ services:
 
 configmap:
   enabled: false
-  configs: []
+  configs: {}
     # key: value
+
+# Global env vars for containers (list of { name:, value: } objects)
+env: []
+
+# Per-field merge hints:
+# - deployments[].services.merge: if true, global `services.service` values are
+#   included before per-deployment `services.service` entries.
+# - deployments[].persistence.merge: if true, global `persistence.volumes` are
+#   included before per-deployment `persistence.volumes` entries.
+# - deployments[].env.merge: if true, global `env` entries are included before
+#   per-deployment `env` entries.
+# - deployments[].configmap.merge: if true, global `configmap.configs` are
+#   included before per-deployment `configmap.configs` when rendering per-dep
+#   ConfigMaps.
 
 secretRefs:
   enabled: false
   secrets: []
     # - secret
     # - another-secret
+  # If `merge: true` is set under a deployment's `secretRefs`, that deployment
+  # will include the global `secretRefs.secrets` in addition to its own.
+  # Example per-deployment usage:
+  # deployments:
+  #   - name: worker
+  #     secretRefs:
+  #       enabled: true
+  #       merge: true
+  #       secrets:
+  #         - my-worker-secret
 
 ingress:
   enabled: false
@@ -147,3 +171,61 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# Optional: define multiple deployments. If omitted, chart renders a single deployment
+# using the top-level image/replicaCount values. Each entry must provide `name`.
+deployments: []
+# Example per-deployment overrides (all fields optional except `name`):
+# deployments:
+#   - name: api
+#     replicaCount: 2
+#     serviceAccountName: custom-sa
+#     image:
+#       repository: nginx
+#       tag: "1.23"
+#       pullPolicy: IfNotPresent
+#     command: ["/bin/sh", "-c", "run-api"]
+#     labels:
+#       role: api
+#     podLabels:
+#       pod-type: api
+#     podAnnotations:
+#       prometheus.io/scrape: "true"
+#     configmap:
+#       enabled: true
+#     secretRefs:
+#       enabled: true
+#       secrets:
+#         - my-api-secret
+#     services:
+#       service:
+#         - name: http
+#           port: 8080
+#           protocol: TCP
+#     livenessProbe:
+#       enabled: true
+#       endpoint: /healthz
+#       port: http
+#     readinessProbe:
+#       enabled: true
+#       endpoint: /ready
+#       port: http
+#     resources:
+#       limits:
+#         cpu: 200m
+#         memory: 256Mi
+#       requests:
+#         cpu: 100m
+#         memory: 128Mi
+#     persistence:
+#       enabled: true
+#       volumes:
+#         - name: data
+#           mountPath: /data
+#           accessMode: ReadWriteOnce
+#           size: 5Gi
+#   - name: worker
+#     replicaCount: 1
+#     image:
+#       repository: busybox
+#       tag: "1.36"

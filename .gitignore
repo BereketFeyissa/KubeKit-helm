@@ -1,1 +1,4 @@
 *.tgz
+*copy*
+output.yaml
+test-values.yaml

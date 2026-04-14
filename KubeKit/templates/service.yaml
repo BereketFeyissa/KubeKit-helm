@@ -1,18 +1,33 @@
+{{- $root := . -}}
+{{- range $idx, $dep := .Values.deployments }}
+  {{- $ports := $root.Values.services.service -}}
+  {{- if and $dep.services $dep.services.merge }}
+    {{- $ports = concat $root.Values.services.service $dep.services.service -}}
+  {{- else if and $dep.services $dep.services.service }}
+    {{- $ports = $dep.services.service -}}
+  {{- end }}
+
+  {{- if $ports }}
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "KubeKit.fullname" . }}-service
+  name: {{ include "KubeKit.fullname" $root }}-{{ $dep.name }}-service
   labels:
-    {{- include "KubeKit.labels" . | nindent 4 }}
+    {{- include "KubeKit.labels" $root | nindent 4 }}
 spec:
-  type: {{ .Values.services.type }}
+  type: {{ if $dep.services }}{{ default $root.Values.services.type $dep.services.type }}{{ else }}{{ $root.Values.services.type }}{{ end }}
   ports:
-    {{- range .Values.services.service }}
-    - port: {{ .port | default 80 }}
-      targetPort: {{ .name | default "http" }}
+    {{- range $ports }}
+    - port: {{ .port }}
+      targetPort: {{ .name }}
       protocol: {{ .protocol | default "TCP" }}
-      name: {{ default (include "KubeKit.fullname" $) .name}}      
+      name: {{ .name }}
     {{- end }}
-
   selector:
-    {{- include "KubeKit.selectorLabels" . | nindent 4 }}
+    {{- include "KubeKit.selectorLabels" $root | nindent 4 }}
+    {{- if $dep.name }}
+    app.kubernetes.io/component: {{ $dep.name }}
+    {{- end }}
+  {{- end }}
+{{- end }}
