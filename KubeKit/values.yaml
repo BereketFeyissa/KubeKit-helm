@@ -56,7 +56,7 @@ services:
 
 configmap:
   enabled: false
-  configs: []
+  configs: {}
     # key: value
 
 secretRefs:
