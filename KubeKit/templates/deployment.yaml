@@ -118,19 +118,27 @@ spec:
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
 
-          {{- range $p := list "livenessProbe" "readinessProbe" }}
-          {{- $globalP := index $root.Values $p -}}
-          {{- $depP := index $dep $p -}}
-          {{- if or $globalP.enabled (and $depP $depP.enabled) }}
+{{- range $p := list "livenessProbe" "readinessProbe" }}
+          {{- $globalP := index $root.Values $p | default dict -}}
+          {{- $depP := index $dep $p | default dict -}}
+          {{- if or (and $globalP (index $globalP "enabled")) (and $depP (index $depP "enabled")) }}
           {{ $p }}:
             httpGet:
               path: {{ if and $depP $depP.endpoint }}{{ $depP.endpoint }}{{ else }}{{ $globalP.endpoint }}{{ end }}
               port: {{ if and $depP $depP.port }}{{ $depP.port }}{{ else }}{{ $globalP.port }}{{ end }}
             initialDelaySeconds: {{ if and $depP $depP.initialDelaySeconds }}{{ $depP.initialDelaySeconds }}{{ else }}{{ $globalP.initialDelaySeconds }}{{ end }}
             periodSeconds: {{ if and $depP $depP.periodSeconds }}{{ $depP.periodSeconds }}{{ else }}{{ $globalP.periodSeconds }}{{ end }}
+            {{- if or (and $globalP $globalP.timeoutSeconds) (and $depP $depP.timeoutSeconds) }}
+            timeoutSeconds: {{ if and $depP $depP.timeoutSeconds }}{{ $depP.timeoutSeconds }}{{ else }}{{ $globalP.timeoutSeconds }}{{ end }}
+            {{- end }}
+            {{- if or (and $globalP $globalP.successThreshold) (and $depP $depP.successThreshold) }}
+            successThreshold: {{ if and $depP $depP.successThreshold }}{{ $depP.successThreshold }}{{ else }}{{ $globalP.successThreshold }}{{ end }}
+            {{- end }}
+            {{- if or (and $globalP $globalP.failureThreshold) (and $depP $depP.failureThreshold) }}
+            failureThreshold: {{ if and $depP $depP.failureThreshold }}{{ $depP.failureThreshold }}{{ else }}{{ $globalP.failureThreshold }}{{ end }}
+            {{- end }}
           {{- end }}
           {{- end }}
-
           {{- $res := default $root.Values.resources $dep.resources }}
           {{- if $res }}
           resources:
