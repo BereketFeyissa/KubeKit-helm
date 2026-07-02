@@ -147,3 +147,68 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# Jobs & CronJobs
+# Each entry renders as a Job (no schedule) or CronJob (schedule set).
+# Jobs fully reuse chart features: configmap, secretRefs, persistence, serviceAccount.
+jobs: []
+  # - name: db-migrate
+  #   enabled: true
+  #
+  #   # --- Resource-level metadata ---
+  #   annotations: {}           # Annotations on the Job/CronJob resource
+  #   labels: {}                # Extra labels merged into Job/CronJob metadata
+  #
+  #   # --- Pod-level metadata ---
+  #   podAnnotations: {}        # Annotations on the pod template
+  #   podLabels: {}             # Extra labels merged into pod template
+  #
+  #   # --- Image ---
+  #   image:
+  #     repository: myapp
+  #     tag: ""                 # Defaults to chart appVersion
+  #     pullPolicy: IfNotPresent
+  #
+  #   # --- Container ---
+  #   command: []
+  #   args: []
+  #   env: []
+  #   envFrom: {}
+  #   #   configmap: true        # Mount chart-wide configmap as env
+  #   #   secretRefs: []          # List of secret names to mount as env
+  #
+  #   # --- Job-specific ---
+  #   backoffLimit: 6
+  #   parallelism: 1
+  #   completions: 1
+  #   completionMode: NonIndexed  # NonIndexed or Indexed
+  #   activeDeadlineSeconds: 600
+  #   ttlSecondsAfterFinished: 300
+  #   restartPolicy: Never        # Never or OnFailure
+  #
+  #   # --- CronJob-specific (set schedule to enable CronJob) ---
+  #   schedule: ""               # e.g. "0 * * * *" for hourly
+  #   suspend: false
+  #   concurrencyPolicy: Allow   # Allow, Forbid, or Replace
+  #   startingDeadlineSeconds: ""
+  #   successfulJobsHistoryLimit: 1
+  #   failedJobsHistoryLimit: 3
+  #
+  #   # --- Pod config ---
+  #   resources: {}
+  #   nodeSelector: {}
+  #   tolerations: []
+  #   affinity: {}
+  #   securityContext: {}
+  #   podSecurityContext: {}
+  #   serviceAccountName: ""     # Defaults to chart-wide serviceAccount
+  #   imagePullSecrets: []       # Defaults to chart-wide imagePullSecrets
+  #   persistence:
+  #     enabled: false
+  #     volumes: []
+  #     # - name: data
+  #     #   accessMode: ReadWriteOnce
+  #     #   size: 10Gi
+  #     #   storageClass: ""
+  #     #   mountPath: /data
+  #     #   annotations: {}
